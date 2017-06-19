@@ -1,0 +1,76 @@
+
+====>    Zuul load mapping config from Eureka
+
+ZuulServerApplication e' annotato @EnableZuulProxy.
+
+@EnableZuulProxy e' annotato @Import(ZuulProxyConfiguration.class)
+ 
+ZuulProxyConfiguration extends ZuulConfiguration.
+
+
+Finalemente (cazzo) , ZuulFilterInitializer e' definto in ZuulConfiguration da factory method.
+
+		@Autowired
+		private Map<String, ZuulFilter> filters;
+
+		@Bean
+		public ZuulFilterInitializer zuulFilterInitializer(CounterFactory counterFactory, TracerFactory tracerFactory) {
+			FilterLoader filterLoader = FilterLoader.getInstance();
+			FilterRegistry filterRegistry = FilterRegistry.instance();
+			return new ZuulFilterInitializer(this.filters, counterFactory, tracerFactory, filterLoader, filterRegistry);
+		}
+
+A bootstrap, filters sono risolti come tutti i beans tipo ZuulFilter:responseFilter, trackingFilter, preDecorationFilter, ribbonRoutingFilter, simpleHostRoutingFilter, servletDetectionFilter, formBodyWrapperFilter, debugFilter, servlet30WrapperFilter, sendResponseFilter, sendErrorFilter, sendForwardFilter]
+In particolare preDecorationFilter dipende da private RouteLocator routeLocator.
+Questo viene risolto in ZuulConfiguration:
+
+    @Bean
+	@Primary
+	public CompositeRouteLocator primaryRouteLocator(
+			Collection<RouteLocator> routeLocators) {
+		return new CompositeRouteLocator(routeLocators);
+	}
+Anche primaryRouteLocator dipende da routeLocators!!
+
+routeLocators viene risolto in discoveryRouteLocator che e' definto in ZuulProxyConfiguration:
+
+	@Bean
+	@ConditionalOnMissingBean(DiscoveryClientRouteLocator.class)
+	public DiscoveryClientRouteLocator discoveryRouteLocator() {
+		return new DiscoveryClientRouteLocator(this.server.getServletPrefix(), this.discovery, this.zuulProperties,
+				this.serviceRouteMapper);
+	}
+	
+discoveryRouteLocator dipende da this.discovery che e' definito in ZuulProxyConfiguration:
+
+	@Autowired
+	private DiscoveryClient discovery;
+
+
+Questo e' definito in EurekaClientAutoConfiguration [spring-cloud-netflix-eureka-client/META-INF/spring.factories]
+	
+	@Bean
+	public DiscoveryClient discoveryClient(EurekaInstanceConfig config,
+			EurekaClient client) {
+		return new EurekaDiscoveryClient(config, client);
+	}
+	
+Per farla breve, l informazione sulle routes disponibili e' storata in preDecorationFilter.CompositeRouteLocator.DiscoveryClientRouteLocator.routes.
+
+Queste sono refreshate da :
+
+SpringApplication.refresh() => ... EmbeddedWebApplicationContext.refresh() => ... AbstractApplicationContext.getLifecycleProcessor().onRefresh() => DefaultLifecycleProcessor.onRefresh() => DefaultLifecycleProcessor.startBeans() => EurekaAutoServiceRegistration.start() => AbstractApplicationContext.publishEvent(InstanceRegisteredEvent) => ZuulProxyConfiguration$ZuulDiscoveryRefreshListener.onApplicationEvent() => ZuulHandlerMapping.setDirty() => CompositeRouteLocator.refresh() => DiscoveryClientRouteLocator.refresh() =>SimpleRouteLocator.routes.set(locateRoutes()) 
+																																																																																																																										   								                                  DiscoveryClientRouteLocator.locateRoutes() =>   DiscoveryClientRouteLocator.discovery.getServices();
+DiscoveryClientRouteLocator.discovery GIA' HA LE ROUTES IN PANCIA ed e' istanza EurekaDiscoveryClient che internamente ha istanza CloudEurekaClient che INDIPENDENTEMENTE connette a eureka e scarica lista aggiornata servizi disponibil con relativi ip e porte.
+
+Infatti CloudEurekaClient  extends DiscoveryClient  e DiscoveryClient ha internamente ha diversi executora tra cui cacheRefreshExecutor che esegue CacheRefreshThread ciclicamente.
+La chiamata avviene in com.netflix.discovery.DiscoveryClient.getAndUpdateDelta() :
+
+EurekaHttpResponse<Applications> httpResponse = eurekaTransport.queryClient.getDelta(remoteRegionsRef.get());
+
+o in com.netflix.discovery.DiscoveryClient.getAndStoreFullRegistry()
+
+Le applications/endpoints disponibili sono strati in com.netflix.discovery.DiscoveryClient.localRegionApps.
+
+
+

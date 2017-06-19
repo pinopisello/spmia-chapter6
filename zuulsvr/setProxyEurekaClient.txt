@@ -1,0 +1,10 @@
+Creato un META-INF/spring.factories con una entry 
+org.springframework.boot.autoconfigure.EnableAutoConfiguration = SpringAppContextConfig in modo da generare EurekaJerseyClient con proxy settati correttamente.
+
+Vedi licensing-service_chapter4/setProxy_EurekaClient.txt per dettagli.
+
+
+
+
+
+

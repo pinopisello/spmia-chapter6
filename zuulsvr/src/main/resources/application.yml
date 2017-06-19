@@ -8,7 +8,7 @@ logging:
       org.springframework.web: WARN
       com.thoughtmechanix: DEBUG
 
-eureka:
+eureka:  #Zuul connette Eureka per prendere tutte le service instances e registrare se stesso come service
   instance:
     preferIpAddress: true
   client:

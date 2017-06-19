@@ -1,0 +1,77 @@
+Implementa Zuul Service Gateway
+
+Le cose da fare sono:
+
+1)Aggiungere Zuul dependencies nel pom
+  spring-cloud-starter-zuul
+  
+2)Annotare @EnableZuulProxy la bootstrap class Application.java
+
+3)Configurare application.yml
+  Qui si definiscono le url mappings e locazione eureka server.
+  Infatti Zuul  registra SE STESSO in eureka come service!!
+
+
+Tutto qua!!
+
+###############   Zuul mapping #################
+
+==>  Automatic Request mapping via service discovery
+Di default Zuul usa il path della request per mappare request verso uno dei services mappati in eureka.
+
+Per esempio :
+
+http://localhost:5555/licensingservice/v1/organizations/442adb6e-fa58-47f3-9ca2-ed1fecdfe86c/licenses/
+
+mappa request verso :
+
+http://localhost:8081/v1/organizations/442adb6e-fa58-47f3-9ca2-ed1fecdfe86c/licenses/
+
+
+Processamento request:
+
+
+DispatcherServlet.doDispatch() => ZuulController.handleRequest() => ZuulServlet.service() => ZuulServlet.preRoute() => FilterProcessor.preRoute() =>  	FilterProcessor.runFilters("pre") =>  List<ZuulFilter> list = FilterLoader.getInstance().getFiltersByType("pre")  [ServletDetectionFilter,Servlet30WrapperFilter,FormBodyWrapperFilter,TrackingFilter,DebugFilter,PreDecorationFilter] 
+																																															  result = ServletDetectionFilter.run()	 [setta in RequestContext attributo "isDispatcherServletRequest" = true se la request e' passata da DispatcherServet prima. result == null ]	
+																																															  result = Servlet30WrapperFilter.run()  [setta in RequestContext setRequest(new Servlet30RequestWrapper(request)]
+																																															  result = FormBodyWrapperFilter.run()   [disabilitato]
+																																															  result = TrackingFilter.run()          [cerca header "tmx-correlation-id" nella request.Se lo trova lo assegna a RequestContext, altrimenti ne genera uno random.RequestContext e un threadlocal definito in RequestContext.java]
+																																															  result = DebugFilter.run()             [disabilitato]
+																																															  result = PreDecorationFilter.run()     [cerca una route per un target endpoint registrato in eureka.
+																																															  											Per call di test,trova route "licensingservice"  e setta due attributi in RequestContext:
+																																															  											"requestURI"="/v1/organizations/442adb6e-fa58-47f3-9ca2-ed1fecdfe86c/licenses/"
+																																															  											"proxy"="licensingservice"
+																																															  											"serviceId"="licensingservice"
+																																															  											"X-Forwarded-Host"="localhost:5555"
+																																															  											"X-Forwarded-Port"="5555"
+																																															  											"X-Forwarded-Proto"="http"
+																																															  											"X-Forwarded-Prefix"="/licensingservice"
+																																															  											Aggiunge alla response header "X-Zuul-ServiceId":"licensingservice"]
+																																															
+																							 ZuulServlet.route() => FilterProcessor.route()		 => FilterProcessor.runFilters("route") =>  List<ZuulFilter> list = FilterLoader.getInstance().getFiltersByType("route")   [RibbonRoutingFilter,SimpleHostRoutingFilter,SendForwardFilter]																						  
+																																															result = RibbonRoutingFilter.run()	 [RibbonCommandContext commandContext = buildCommandContext(context) => String serviceId = (String) context.get("serviceId"); [settato da PreDecorationFilter!!
+																																																																										return new RibbonCommandContext(serviceId, verb, uri, retryable, headers, params,requestEntity, this.requestCustomizers, contentLength);
+																																																								  ClientHttpResponse response = forward(commandContext) => HttpClientRibbonCommand command = this.ribbonCommandFactory.create(commandContext);
+																																																								  														   ClientHttpResponse response = command.execute()  => AbstractRibbonCommand.run() => RQ request = createRequest();
+																																																								  														   																					  RS response = this.client.executeWithLoadBalancer(request, config) => AbstractLoadBalancerAwareClient.executeWithLoadBalancer(request) =>    LoadBalancerCommand<T> command = LoadBalancerCommand.<T>builder().withLoadBalancerURI(request.getUri()).build();
+																																																								  														   																					  																																			   command.submit() =>  URI finalUri = reconstructURIWithServer(server, request.getUri()); [http://10.195.223.203:8081/v1/organizations/442adb6e-fa58-47f3-9ca2-ed1fecdfe86c/licenses/]
+																																																								  														   																					  																																			                        AbstractLoadBalancerAwareClient.this.execute(requestForServer, requestConfig)) => RibbonLoadBalancingHttpClient.execute(request) => RibbonLoadBalancingHttpClient.delegate.execute(httpUriRequest) => org.apache.http.impl.client.InternalHttpClient.execute() => CloseableHttpClient.doExecute() => 
+																																																								  														   																					  																																			                        																																																																									final HttpRoute route = determineRoute(target, wrapper, localcontext);
+																																																								  														   																					  																																			                        																																																																									RedirectExec.execute(route, wrapper, localcontext, execAware) => RetryExec.execute() => 		 
+																																																								  														   																					  																																			                        
+																																																								  														   																					  																																			                         
+ 
+																																																								  														   																					  
+																																																							     ]
+																																															
+																																															
+																																																								 
+																																																		
+																																															  
+																																															  			
+
+
+
+
+
+
