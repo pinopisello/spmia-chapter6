@@ -60,7 +60,7 @@ Per farla breve, l informazione sulle routes disponibili e' storata in preDecora
 Queste sono refreshate da :
 
 SpringApplication.refresh() => ... EmbeddedWebApplicationContext.refresh() => ... AbstractApplicationContext.getLifecycleProcessor().onRefresh() => DefaultLifecycleProcessor.onRefresh() => DefaultLifecycleProcessor.startBeans() => EurekaAutoServiceRegistration.start() => AbstractApplicationContext.publishEvent(InstanceRegisteredEvent) => ZuulProxyConfiguration$ZuulDiscoveryRefreshListener.onApplicationEvent() => ZuulHandlerMapping.setDirty() => CompositeRouteLocator.refresh() => DiscoveryClientRouteLocator.refresh() =>SimpleRouteLocator.routes.set(locateRoutes()) 
-																																																																																																																										   								                                  DiscoveryClientRouteLocator.locateRoutes() =>   DiscoveryClientRouteLocator.discovery.getServices();
+																																																																																																																										   								                                  DiscoveryClientRouteLocator.locateRoutes() =>   DiscoveryClientRouteLocator.discovery.getServices()  !!!E' qui che le routes pescate da eurekaclient vengono salvate  DiscoveryClientRouteLocator !!!   
 DiscoveryClientRouteLocator.discovery GIA' HA LE ROUTES IN PANCIA ed e' istanza EurekaDiscoveryClient che internamente ha istanza CloudEurekaClient che INDIPENDENTEMENTE connette a eureka e scarica lista aggiornata servizi disponibil con relativi ip e porte.
 
 Infatti CloudEurekaClient  extends DiscoveryClient  e DiscoveryClient ha internamente ha diversi executora tra cui cacheRefreshExecutor che esegue CacheRefreshThread ciclicamente.

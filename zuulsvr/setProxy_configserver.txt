@@ -1,0 +1,16 @@
+La request per le configserver properties e' invocata tramite ConfigServicePropertySourceLocator.restTemplate.
+ConfigServicePropertySourceLocator e' definito in ConfigServiceBootstrapConfiguration
+
+
+Per configurare un proxy verso 127.0.0.1:9999 occorre:
+
+1)spring.cloud.config.enabled=false per evitare instanziazione ConfigServicePropertySourceLocator default .Vedi ConfigServiceBootstrapConfiguration.
+
+2)Crea SpringBootContextConfig.java custom versione di ConfigServicePropertySourceLocator che setta restTemplate CON proxy
+
+3)Setta org.springframework.cloud.bootstrap.BootstrapConfiguration= SpringBootContextConfig in META-INF/spring.factories cosi il bootstrap acchiappa custom ConfigServicePropertySourceLocator 
+
+
+
+
+

@@ -30,8 +30,58 @@ http://localhost:8081/v1/organizations/442adb6e-fa58-47f3-9ca2-ed1fecdfe86c/lice
 
 Processamento request:
 
+1)Mappaggio request verso ZuulController
 
-DispatcherServlet.doDispatch() => ZuulController.handleRequest() => ZuulServlet.service() => ZuulServlet.preRoute() => FilterProcessor.preRoute() =>  	FilterProcessor.runFilters("pre") =>  List<ZuulFilter> list = FilterLoader.getInstance().getFiltersByType("pre")  [ServletDetectionFilter,Servlet30WrapperFilter,FormBodyWrapperFilter,TrackingFilter,DebugFilter,PreDecorationFilter] 
+Zuul prende routes da due sorgenti: Github e Eureka
+
+Github)ZuulProperties.routes   Zuul service configuration da Github (https://github.com/pinopisello/config-repo/blob/master/zuulservice/zuulservice.yml)  [vedi setProxy_configserver.txt ]
+ZuulProperties.java e' annotata @ConfigurationProperties("zuul")
+
+AbstractAutowireCapableBeanFactory.initializeBean() => AbstractAutowireCapableBeanFactory.applyBeanPostProcessorsBeforeInitialization() => ConfigurationPropertiesBindingPostProcessor.postProcessBeforeInitialization() => PropertiesConfigurationFactory.doBindPropertiesToTarget()    [Qui le props githus vengono storate in ZuulProperties, incluso zuul.routes.licensingservice: /licensing/**]
+
+
+Eureka) [http://localhost:8761/eureka/apps/].
+
+SpringApplication.refresh() => ... EmbeddedWebApplicationContext.refresh() => ... AbstractApplicationContext.refresh() => DefaultLifecycleProcessor$LifecycleGroup.start() => EurekaAutoServiceRegistration.start() => AbstractApplicationContext.publishEvent(InstanceRegisteredEvent) => ZuulProxyConfiguration$ZuulDiscoveryRefreshListener.onApplicationEvent() => ZuulProxyConfiguration$ZuulDiscoveryRefreshListener.reset() => ZuulHandlerMapping.setDirty() => CompositeRouteLocator.refresh() => DiscoveryClientRouteLocator.doRefresh() => clientLocatorRutes = DiscoveryClientRouteLocator.locateRoutes()  =>   staticServices =  SimpleRouteLocator.locateRoutes() => this.properties.getRoutes()                                                  [routes storate in ZuulProperties.java provenienti da github!!]  
+																																																																																																																																												                                           List<String> services = this.discovery.getServices() => EurekaDiscoveryClient.getServices() => CloudEurekaClient.getApplications()  [lista registered service in eureka server]		
+																																																																																																																																												                                           String[] ignored = this.properties.getIgnoredServices().toArray(new String[0]);
+																																																																																																																																												                                           
+																																																																																																																																												                                           Attenzione:una route provenienti da eureka (services) e' considerata solo se NON sono gia definite nelle statics e se il parametro "zuul.ignored-services" non le matcha!!
+																																																																																																																																						                                           
+																																																																																																																																					this.routes.set	(clientLocatorRutes) DiscoveryClientRouteLocator contiene il merge delle routes provenienti da github e da eureka!!                                           																						   
+
+DiscoveryClientRouteLocator contiene il merge delle routes provenienti da github e da eureka!!                                           																						   
+
+Quindi il nesting e' ZuulHandlerMapping=> CompositeRouteLocator => DiscoveryClientRouteLocator => routes
+
+
+DispatcherServlet.doDispatch() =>  DispatcherServlet.getHandler() => Object handler = ZuulHandlerMapping.getHandlerInternal(request) => ZuulHandlerMapping.lookupHandler() => ZuulHandlerMapping.registerHandlers() => CompositeRouteLocator.getRoutes() => DiscoveryClientRouteLocator.getRoutes()
+																																																	  for (Route route : routes) {
+																																																	       ZuulHandlerMapping.registerHandler(route.getFullPath(), ZuulController) => ZuulHandlerMapping.handlerMap.put(route.getFullPath(), ZuulController);  
+																																							Quindi il mapping FINALE url:route e' storato in ZuulHandlerMapping.handlerMap										       
+																																							AbstractUrlHandlerMapping.lookupHandler("/licensingservice/v1/organizations/442adb6e-fa58-47f3-9ca2-ed1fecdfe86c/licenses/",request)  => for (String registeredPattern : this.handlerMap.keySet()) 
+																																																																											matchingPatterns.add(registeredPattern);
+																																																																									 Comparator<String> patternComparator = getPathMatcher().getPatternComparator(/licensingservice/v1/organizations/442adb6e-fa58-47f3-9ca2-ed1fecdfe86c/licenses/)
+																																																																									 Collections.sort(matchingPatterns, patternComparator);
+																																																																									 bestPatternMatch = matchingPatterns.get(0);  /licensingservice/**
+																																																																									 handler = this.handlerMap.get(bestPatternMatch) = ZuulController !!	
+																	 handler = HandlerExecutionChain(ZuulController)																																																							 AbstractUrlHandlerMapping.buildPathExposingHandler(ZuulController) => return HandlerExecutionChain chain = new HandlerExecutionChain(ZuulController);     
+																	 return handler
+										
+										
+								   ZuulController.handleRequest(request, response) => ServletWrappingController.handleRequestInternal(request, response) => ZuulServlet.service()
+								   
+								   
+Quindi il mapping FINALE url:route e' storato in ZuulHandlerMapping.handlerMap								   
+								   		
+																	 
+
+
+
+
+2)Processamento request ZuulServlet
+
+  ZuulController.handleRequest() => ZuulServlet.service() => ZuulServlet.preRoute() => FilterProcessor.preRoute() =>  	FilterProcessor.runFilters("pre") =>  List<ZuulFilter> list = FilterLoader.getInstance().getFiltersByType("pre")  [ServletDetectionFilter,Servlet30WrapperFilter,FormBodyWrapperFilter,TrackingFilter,DebugFilter,PreDecorationFilter] 
 																																															  result = ServletDetectionFilter.run()	 [setta in RequestContext attributo "isDispatcherServletRequest" = true se la request e' passata da DispatcherServet prima. result == null ]	
 																																															  result = Servlet30WrapperFilter.run()  [setta in RequestContext setRequest(new Servlet30RequestWrapper(request)]
 																																															  result = FormBodyWrapperFilter.run()   [disabilitato]
@@ -55,10 +105,10 @@ DispatcherServlet.doDispatch() => ZuulController.handleRequest() => ZuulServlet.
 																																																								  														   ClientHttpResponse response = command.execute()  => AbstractRibbonCommand.run() => RQ request = createRequest();
 																																																								  														   																					  RS response = this.client.executeWithLoadBalancer(request, config) => AbstractLoadBalancerAwareClient.executeWithLoadBalancer(request) =>    LoadBalancerCommand<T> command = LoadBalancerCommand.<T>builder().withLoadBalancerURI(request.getUri()).build();
 																																																								  														   																					  																																			   command.submit() =>  URI finalUri = reconstructURIWithServer(server, request.getUri()); [http://10.195.223.203:8081/v1/organizations/442adb6e-fa58-47f3-9ca2-ed1fecdfe86c/licenses/]
-																																																								  														   																					  																																			                        AbstractLoadBalancerAwareClient.this.execute(requestForServer, requestConfig)) => RibbonLoadBalancingHttpClient.execute(request) => RibbonLoadBalancingHttpClient.delegate.execute(httpUriRequest) => org.apache.http.impl.client.InternalHttpClient.execute() => CloseableHttpClient.doExecute() => 
+																																																								  														   																					  																																			                        AbstractLoadBalancerAwareClient.this.execute(requestForServer, requestConfig)) => RibbonLoadBalancingHttpClient.execute(request) => RibbonLoadBalancingHttpClient.delegate.execute(httpUriRequest) => org.apache.http.impl.client.InternalHttpClient.doExecute() => 
 																																																								  														   																					  																																			                        																																																																									final HttpRoute route = determineRoute(target, wrapper, localcontext);
 																																																								  														   																					  																																			                        																																																																									RedirectExec.execute(route, wrapper, localcontext, execAware) => RetryExec.execute() => 		 
-																																																								  														   																					  																																			                        
+Per proxare req/resp attraverso Charles setta in jvm params: -Dhttp.proxyHost=localhost -Dhttp.proxyPort=9999
 																																																								  														   																					  																																			                         
  
 																																																								  														   																					  
