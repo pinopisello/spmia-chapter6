@@ -1,0 +1,63 @@
+###############  Pre-route Filter (TrackingFilter)   ##############
+
+TrackingFilter extends ZuulFilter ed implementa:
+
+ filterType() => return FilterUtils.PRE_FILTER_TYPE [filtro pre]
+ 
+ filterOrder() => return 1  [primo]
+ 
+ shouldFilter()=> return true [filtra tutte req]
+
+ run() => Verifica che la req abbia header "tmx-correlation-id".
+          Se nonce l ha ne genera uno e lo aggiunge al RequestContext [ctx.addZuulRequestHeader("tmx-correlation-id", correlationId);]
+          Attenzione: RequestContext.getCurrentContext() e' threadlocal!!
+          I servizi downstream devono usare tale header!!Per esempio licensingservice lo usa in UserContextInterceptor e UserContextFilter
+
+
+###############  Route Filter (SpecialRoutesFilter)   ##############
+
+SpecialRoutesFilter extends ZuulFilter ed implementa:
+
+ filterType() => return filterUtils.ROUTE_FILTER_TYPE [filtro route]
+ 
+ filterOrder() => return 1  [primo]
+ 
+ shouldFilter()=> return true [filtra tutte req]
+
+ run() => Cerca in  RequestContext.getCurrentContext() per una key = 'serviceId'.
+          'serviceId' e' settato da PreDecorationFilter.run() con route.location() dove route e' la route che metcha la request.
+ 		  Se c'e', routa la request verso http://specialroutesservice/v1/route/abtesting/{serviceId}
+ 		  Se non c'e' usa le route standard.
+ 		  
+
+
+###############  Post-Route Filter (ResponseFilter)   ##############
+
+ResponseFilter extends ZuulFilter ed implementa:
+
+ filterType() => return FilterUtils.POST_FILTER_TYPE [filtro post]
+ 
+ filterOrder() => return 1  [primo]
+ 
+ shouldFilter()=> return true [filtra tutte req]
+
+ run() => Prende il correlatioId da RequestContext.getCurrentContext() settato da TrackingFilter e aggiunge header alla response 
+          ctx.getResponse().addHeader("tmx-correlation-id", filterUtils.getCorrelationId());
+ 
+
+
+
+Per esempio osserva in charles cosa succede dopo aver invocato :
+
+http://localhost:5555/licensingservice/v1/organizations/442adb6e-fa58-47f3-9ca2-ed1fecdfe86c/licenses/08dbe05-606e-4dad-9d33-90ef10e334f9
+
+            Zuul => 
+            
+TrackingFilter Aaggiunge  tmx-correlation-id zuulheader  al RequestContext
+Tale header e' 
+
+
+
+
+
+

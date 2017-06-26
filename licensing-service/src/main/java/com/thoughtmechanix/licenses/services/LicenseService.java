@@ -33,7 +33,9 @@ public class LicenseService {
 
     private static final Logger logger = LoggerFactory.getLogger(LicenseService.class);
 
-    @HystrixCommand
+    @HystrixCommand(   
+  		  commandProperties=
+  		       {@HystrixProperty(name="execution.isolation.thread.timeoutInMilliseconds", value="12000")})
     public License getLicense(String organizationId,String licenseId) throws InterruptedException {
        License license = licenseRepository.findByOrganizationIdAndLicenseId(organizationId, licenseId);
 

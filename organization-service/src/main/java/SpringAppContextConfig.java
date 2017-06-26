@@ -25,11 +25,11 @@ public class SpringAppContextConfig {
 	    		.withProxy("127.0.0.1", "9999", "", "")
                 .withClientName("Proxy-DiscoveryClient-HTTPClient")
                 .withUserAgent("Pippo")
-                .withConnectionTimeout(clientConfig.getEurekaServerConnectTimeoutSeconds() * 200000 )
-                .withReadTimeout(clientConfig.getEurekaServerReadTimeoutSeconds() * 200000)
+                .withConnectionTimeout(clientConfig.getEurekaServerConnectTimeoutSeconds() * 1000 )
+                .withReadTimeout(clientConfig.getEurekaServerReadTimeoutSeconds() * 1000)
                 .withMaxConnectionsPerHost(clientConfig.getEurekaServerTotalConnectionsPerHost())
                 .withMaxTotalConnections(clientConfig.getEurekaServerTotalConnections())
-                .withConnectionIdleTimeout((int)clientConfig.getEurekaConnectionIdleTimeoutSeconds() * 200000)
+                .withConnectionIdleTimeout((int)clientConfig.getEurekaConnectionIdleTimeoutSeconds() * 1000)
                 .withEncoderWrapper(CodecWrappers.getEncoder(clientConfig.getEncoderName()))
                 .withDecoderWrapper(CodecWrappers.resolveDecoder( clientConfig.getDecoderName(), clientConfig.getClientDataAccept()) );
 

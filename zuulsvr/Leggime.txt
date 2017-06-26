@@ -28,6 +28,17 @@ mappa request verso :
 http://localhost:8081/v1/organizations/442adb6e-fa58-47f3-9ca2-ed1fecdfe86c/licenses/
 
 
+http://localhost:5555/organizationservice/v1/organizations/e254f8c-c442-4ebe-a82a-e2fc1d1ff78a
+
+mappa request verso :
+
+http://localhost:8080/v1/organizations/e254f8c-c442-4ebe-a82a-e2fc1d1ff78a
+
+
+Le mappe configurate in Zuul si possono vedere in: http://locahost:5555/routes
+
+
+
 Processamento request:
 
 1)Mappaggio request verso ZuulController
@@ -114,14 +125,56 @@ Per proxare req/resp attraverso Charles setta in jvm params: -Dhttp.proxyHost=lo
 																																																								  														   																					  
 																																																							     ]
 																																															
-																																															
+==================  ZUUL ROUTE MAPPING CONFIGURAZIONE   ======================================																																															
 																																																								 
-																																																		
-																																															  
-																																															  			
 
+MAPPE ALTERNATIVE A ENDPOINT EUREKA
 
+Si posso creare  routes alternative per Eureka endpoint inserendo entries nel file https://github.com/pinopisello/config-repo/blob/master/zuulservice/zuulservice-prod.yml
 
+Per esempio : zuul.routes.organizationservice: /organization/** 
+             
+                                     mappa
+                                       http://localhost:5555/organization/v1/organizations/e254f8c-c442-4ebe-a82a-e2fc1d1ff78a
+                                     verso
+                                       http://localhost:8080/v1/organizations/e254f8c-c442-4ebe-a82a-e2fc1d1ff78a
 
+IGNORARE EUREKA ENDPOINTS
 
+Si possono ignorare le routes prese da eureka con zuul:ignored-services: 'organizationservice'.
+Per escludere TUTTE le routes eureka settalo '*'
+
+In tal modo :
+http://localhost:5555/organization/v1/organizations/e254f8c-c442-4ebe-a82a-e2fc1d1ff78a        => Funge!
+http://localhost:5555/organizationservice/v1/organizations/e254f8c-c442-4ebe-a82a-e2fc1d1ff78a => Non funge!!
+ 
+MAPPE STATICHE
+zuul:
+ routes:
+	organizationstatics:
+	  path: /organizationstatic/**
+	  url:  http://127.0.0.1:8080
+  
+mappa:
+       http://localhost:5555/organizationstatic/v1/organizations/e254f8c-c442-4ebe-a82a-e2fc1d1ff78a
+verso:
+       http://127.0.0.1:8080/v1/organizations/e254f8c-c442-4ebe-a82a-e2fc1d1ff78a
+
+FORZARE ZUUL A RICARICARE GITHUB CONFIG
+
+Basta colpire http://localhost:5555/refresh con una POST.
+
+																																						  			
+==================  ZUUL TIMEOUTS   ======================================																																															
+Di default Zuul ritorna 500 se il servizio proxato impiega piu di un secondo per tornare la response.
+
+Esempio in  http://localhost:5555/organization/v1/organizations/e254f8c-c442-4ebe-a82a-e2fc1d1ff78a dove ho messo un Thread.sleep(1500) in OrganizationService.getOrganization()
+
+Si puo cambiare tale timeout settando:  hystrix.command.default.execution.isolation.thread.timeoutInMilliseconds=2000
+
+Si puo customizzare timeout per ogni eureka endpoint cambiando 'default' con l id del servizio:   hystrix.command.licensingservice.execution.isolation.thread.timeoutInMilliseconds=3000
+
+Quello e' il timeout di Hystrix.
+
+Ribbon ha un suo timeout = 5 secsche deve essere sempre < Hystrix  .Esempio: licensingservice.ribbon.ReadTimeout: 7000
 

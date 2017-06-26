@@ -17,9 +17,4 @@ eureka:  #Zuul connette Eureka per prendere tutte le service instances e registr
     serviceUrl:
         defaultZone: http://localhost:8761/eureka/
 
-#
-#zuul:
-#  prefix:  /api
-#  routes:
-#    organizationservice: /organization/**
-#    licensingservice: /licensing/**
+

@@ -40,7 +40,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 
-//@Component
+@Component
 public class SpecialRoutesFilter extends ZuulFilter {
     private static final int FILTER_ORDER =  1;
     private static final boolean SHOULD_FILTER =true;
@@ -69,18 +69,20 @@ public class SpecialRoutesFilter extends ZuulFilter {
     private ProxyRequestHelper helper = new ProxyRequestHelper();
 
     private AbTestingRoute getAbRoutingInfo(String serviceName){
-        ResponseEntity<AbTestingRoute> restExchange = null;
-        try {
-            restExchange = restTemplate.exchange(
-                             "http://specialroutesservice/v1/route/abtesting/{serviceName}",
-                             HttpMethod.GET,
-                             null, AbTestingRoute.class, serviceName);
-        }
-        catch(HttpClientErrorException ex){
-            if (ex.getStatusCode()== HttpStatus.NOT_FOUND) return null;
-            throw ex;
+    	if("specialroutesservice".equals(serviceName)){ //routa verso http://specialroutesservice solo le req che hanno serviceName != null
+	        ResponseEntity<AbTestingRoute> restExchange = null;
+	        try {
+	            restExchange = restTemplate.exchange(
+	                             "http://specialroutesservice/v1/route/abtesting/{serviceName}",
+	                             HttpMethod.GET,
+	                             null, AbTestingRoute.class, serviceName);
+	        }
+	        catch(HttpClientErrorException ex){
+	            if (ex.getStatusCode()== HttpStatus.NOT_FOUND) return null;
+	            throw ex;
         }
         return restExchange.getBody();
+    	}else return null;
     }
 
     private String buildRouteString(String oldEndpoint, String newEndpoint, String serviceName){

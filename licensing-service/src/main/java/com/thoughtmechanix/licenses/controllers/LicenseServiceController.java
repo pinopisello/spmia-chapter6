@@ -1,20 +1,23 @@
 package com.thoughtmechanix.licenses.controllers;
 
-import com.thoughtmechanix.licenses.model.License;
-import com.thoughtmechanix.licenses.services.LicenseService;
-import com.thoughtmechanix.licenses.config.ServiceConfig;
+import java.util.List;
+
+import javax.servlet.http.HttpServletRequest;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.http.HttpStatus;
-import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.ResponseStatus;
-import javax.servlet.http.HttpServletRequest;
-import java.util.List;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.thoughtmechanix.licenses.config.ServiceConfig;
+import com.thoughtmechanix.licenses.model.License;
+import com.thoughtmechanix.licenses.services.LicenseService;
 
 @RestController
 @RequestMapping(value="v1/organizations/{organizationId}/licenses")
@@ -27,6 +30,12 @@ public class LicenseServiceController {
 
     @Autowired
     private HttpServletRequest request;
+    //Come cazzo e'possibile che HttpServletRequest sia autowired??
+    //Setup:  sWebApplicationContextUtils.registerWebApplicationScopes(beanfactory) => DefaultListableBeanFactory.registerResolvableDependency(ServletRequest.class, new WebApplicationContextUtils$RequestObjectFactory());
+    //        WebApplicationContextUtils$RequestObjectFactory.getObject() ritorna la request legata al thread attuale ed usa RequestContextHolder.requestAttributesHolder threadlocal per storare la HttpServletRequest
+    //Injection in here:  AutowiredAnnotationBeanPostProcessor.postProcessPropertyValues(licenseServiceController) => InjectionMetadata.inject(licenseServiceController ) => AutowiredAnnotationBeanPostProcessor$AutowiredFieldElement.inject(LicenseServiceController) => DefaultListableBeanFactory.resolveDependency(licenseServiceController,request) =>  DefaultListableBeanFactory.doResolveDependency(licenseServiceController,request)  => DefaultListableBeanFactory.findAutowireCandidates(request) =>  trovato in DefaultListableBeanFactory.resolvableDependencies !!        
+    
+    
 
     private static final Logger logger = LoggerFactory.getLogger(LicenseServiceController.class);
 
