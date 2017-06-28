@@ -31,7 +31,7 @@ public class LicenseServiceController {
     @Autowired
     private HttpServletRequest request;
     //Come cazzo e'possibile che HttpServletRequest sia autowired??
-    //Setup:  sWebApplicationContextUtils.registerWebApplicationScopes(beanfactory) => DefaultListableBeanFactory.registerResolvableDependency(ServletRequest.class, new WebApplicationContextUtils$RequestObjectFactory());
+    //Setup:  WebApplicationContextUtils.registerWebApplicationScopes(beanfactory) => DefaultListableBeanFactory.registerResolvableDependency(ServletRequest.class, new WebApplicationContextUtils$RequestObjectFactory());
     //        WebApplicationContextUtils$RequestObjectFactory.getObject() ritorna la request legata al thread attuale ed usa RequestContextHolder.requestAttributesHolder threadlocal per storare la HttpServletRequest
     //Injection in here:  AutowiredAnnotationBeanPostProcessor.postProcessPropertyValues(licenseServiceController) => InjectionMetadata.inject(licenseServiceController ) => AutowiredAnnotationBeanPostProcessor$AutowiredFieldElement.inject(LicenseServiceController) => DefaultListableBeanFactory.resolveDependency(licenseServiceController,request) =>  DefaultListableBeanFactory.doResolveDependency(licenseServiceController,request)  => DefaultListableBeanFactory.findAutowireCandidates(request) =>  trovato in DefaultListableBeanFactory.resolvableDependencies !!        
     

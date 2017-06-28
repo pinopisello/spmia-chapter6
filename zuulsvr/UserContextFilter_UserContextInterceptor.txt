@@ -1,0 +1,30 @@
+UserContextFilter e UserContextInterceptor lavorano con headers settati da ResponseFilter in zuulsvr_chapter6.
+Vedi zuulsvr_chapter6/Filters.txt
+
+Testa con: http://localhost:5555/licensingservice/v1/organizations/442adb6e-fa58-47f3-9ca2-ed1fecdfe86c/licenses/08dbe05-606e-4dad-9d33-90ef10e334f9
+
+
+
+###########   UserContextFilter  #############
+
+Intercetta request in entrata ed estrae headers:
+
+tmx-correlation-id
+tmx-auth-token
+tmx-user-id
+tmx-org-id
+
+e li setta in UserContextHolder.getContext().
+
+
+###########   UserContextInterceptor  #############
+
+Intercetta request in uscita che usano RestTemplate, per esempio in SpecialRoutesFilter.getAbRoutingInfo(). 
+Legge tmx-correlation-id e tmx-auth-token settati da UserContextFilter
+Setta headers tmx-correlation-id e tmx-auth-token nelle request in uscita.
+Aggiunto agli interceptors di RestTemplate in ZuulServerApplication.java
+
+
+
+
+

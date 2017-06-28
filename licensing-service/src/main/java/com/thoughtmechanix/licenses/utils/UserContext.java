@@ -2,7 +2,7 @@ package com.thoughtmechanix.licenses.utils;
 
 import org.springframework.stereotype.Component;
 
-@Component
+//@Component non sembra servire ... e' creato in UserContextHolder.createEmptyContext ... a che mi serve un singleton Spring?
 public class UserContext {
     public static final String CORRELATION_ID = "tmx-correlation-id";
     public static final String AUTH_TOKEN     = "tmx-auth-token";

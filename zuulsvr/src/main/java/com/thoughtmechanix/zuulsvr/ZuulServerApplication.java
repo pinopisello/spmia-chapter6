@@ -17,10 +17,11 @@ import java.util.List;
 @EnableZuulProxy
 public class ZuulServerApplication {
 
+	
     @LoadBalanced
     @Bean
     public RestTemplate getRestTemplate(){
-        RestTemplate template = new RestTemplate();
+        RestTemplate template = new RestTemplate();  //Usato in SpecialRoutesFilter.getAbRoutingInfo()
         List interceptors = template.getInterceptors();
         if (interceptors == null) {
             template.setInterceptors(Collections.singletonList(new UserContextInterceptor()));

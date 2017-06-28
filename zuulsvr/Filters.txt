@@ -24,11 +24,19 @@ SpecialRoutesFilter extends ZuulFilter ed implementa:
  
  shouldFilter()=> return true [filtra tutte req]
 
- run() => Cerca in  RequestContext.getCurrentContext() per una key = 'serviceId'.
-          'serviceId' e' settato da PreDecorationFilter.run() con route.location() dove route e' la route che metcha la request.
- 		  Se c'e', routa la request verso http://specialroutesservice/v1/route/abtesting/{serviceId}
- 		  Se non c'e' usa le route standard.
+ run() => Cerca in  RequestContext.getCurrentContext() per una key = 'serviceId' che coincide con "eureka" id in caso il service sia mappato in eureka.
+          Dato il serviceid, invoca http://10.195.223.162:8082/v1/route/abtesting/{licensingservice o organizationservice}
+          SpecialRoutesServiceController.abstestings() risponde con oggetto contenente matching row nella tabella 'abtesting'
+          
+ 		  Per esempio http://localhost:5555/organizationservice/v1/organizations/e254f8c-c442-4ebe-a82a-e2fc1d1ff78a SpecialRoutesServiceController
+ 		  ritorna < organizationservice Y      http://orgservice-new:8087      5 >
  		  
+ 		  Se la matching row di serviceid e' active e SpecialRoutesFilter.useSpecialRoute() ritorna true, una request verso matching row.endpoint viene eseguita [SpecialRoutesFilter.forwardToSpecialRoute()]
+ 		  e la response inviata al caller.
+ 		  Viene usata una istanza apache CloseableHttpClient.
+ 		  
+
+
 
 
 ###############  Post-Route Filter (ResponseFilter)   ##############
@@ -51,13 +59,21 @@ Per esempio osserva in charles cosa succede dopo aver invocato :
 
 http://localhost:5555/licensingservice/v1/organizations/442adb6e-fa58-47f3-9ca2-ed1fecdfe86c/licenses/08dbe05-606e-4dad-9d33-90ef10e334f9
 
-            Zuul => 
+            Zuul =>                                                                    LicensingService =>																					Zuul =>			                                									OrganizationService
             
-TrackingFilter Aaggiunge  tmx-correlation-id zuulheader  al RequestContext
-Tale header e' 
+TrackingFilter crea e aggiunge  tmx-correlation-id   alla RequestContext        UserContextFilter intercetta tmx-correlation-id e lo setta in UserContextHolder.userContextThreadLocal      TrackingFilter estrae  tmx-correlation-id header dalla request                      UserContextFilter intercetta tmx-correlation-id e lo setta in UserContextHolder.userContextThreadLocal
+																				OrganizationRestTemplateClient.invoca organizationService sotto usando RestTemplate                         Tale header e' aggiunto request verso organizationService                           OrganizationServiceController invoca DB e genera payload.
+Tale header e' aggiunto alla request verso:                                     http://10.195.223.162:5555/organizationservice/v1/organizations/442adb6e-fa58-47f3-9ca2-ed1fecdfe86c        http://10.195.223.162:8080/v1/organizations/442adb6e-fa58-47f3-9ca2-ed1fecdfe86c    tmx-correlation-id NON e' aggiunto ala response
+																			    RestTemplate e' configurato con UserContextInterceptor che  aggiunge tmx-correlation-id alla request
+licensingService: http://10.195.223.162:8081/v1/organizations/					tmx-correlation-id NON e' aggiunto ala response												
+                  442adb6e-fa58-47f3-9ca2-ed1fecdfe86c/licenses/																															ResponseFilter aggiunge alla response header tmx-correlation-id prendendolo da 
+                  08dbe05-606e-4dad-9d33-90ef10e334f9																																		RequestContext.getRequest().getHeader(tmx-correlation-id)
+																																															
 
 
 
-
+ResponseFilter aggiunge alla response header tmx-correlation-id prendendolo da 
+RequestContext.getRequest().getHeader(tmx-correlation-id)
+Quindi browser riceve tmx-correlation-id come response header.
 
 

@@ -21,11 +21,11 @@ public class UserContextFilter implements Filter {
     public void doFilter(ServletRequest servletRequest, ServletResponse servletResponse, FilterChain filterChain)
             throws IOException, ServletException {
         HttpServletRequest httpServletRequest = (HttpServletRequest) servletRequest;
-
-        UserContextHolder.getContext().setCorrelationId(  httpServletRequest.getHeader(UserContext.CORRELATION_ID) );
-        UserContextHolder.getContext().setUserId(httpServletRequest.getHeader(UserContext.USER_ID));
-        UserContextHolder.getContext().setAuthToken(httpServletRequest.getHeader(UserContext.AUTH_TOKEN));
-        UserContextHolder.getContext().setOrgId(httpServletRequest.getHeader(UserContext.ORG_ID));
+        UserContext uc = UserContextHolder.getContext();
+        uc.setCorrelationId(  httpServletRequest.getHeader(UserContext.CORRELATION_ID) );
+        uc.setUserId(httpServletRequest.getHeader(UserContext.USER_ID));
+        uc.setAuthToken(httpServletRequest.getHeader(UserContext.AUTH_TOKEN));
+        uc.setOrgId(httpServletRequest.getHeader(UserContext.ORG_ID));
 
         logger.debug("Special Routes Service Incoming Correlation id: {}", UserContextHolder.getContext().getCorrelationId());
 

@@ -69,7 +69,7 @@ public class SpecialRoutesFilter extends ZuulFilter {
     private ProxyRequestHelper helper = new ProxyRequestHelper();
 
     private AbTestingRoute getAbRoutingInfo(String serviceName){
-    	if("specialroutesservice".equals(serviceName)){ //routa verso http://specialroutesservice solo le req che hanno serviceName != null
+    	//if("specialroutesservice".equals(serviceName)){ 
 	        ResponseEntity<AbTestingRoute> restExchange = null;
 	        try {
 	            restExchange = restTemplate.exchange(
@@ -82,7 +82,7 @@ public class SpecialRoutesFilter extends ZuulFilter {
 	            throw ex;
         }
         return restExchange.getBody();
-    	}else return null;
+    	//}else return null;
     }
 
     private String buildRouteString(String oldEndpoint, String newEndpoint, String serviceName){
@@ -198,12 +198,14 @@ public class SpecialRoutesFilter extends ZuulFilter {
     public boolean useSpecialRoute(AbTestingRoute testRoute){
         Random random = new Random();
 
-        if (testRoute.getActive().equals("N")) return false;
+        if (testRoute.getActive().equals("N")) return false;   //nella tabella abtesting , il service deve essere active=Y
 
-        int value = random.nextInt((10 - 1) + 1) + 1;
+        int value = random.nextInt(10) +1;                    //genera un numero casuale tra 1 e 10
 
-        if (testRoute.getWeight()<value) return true;
-
+        if (testRoute.getWeight() <= value) return true;       //nella tabella abtesting , il service ha una colonna weight con numero tra 1 e 10.
+        													   //la special route (colonna 'endpoint') e' usata se il random <= weight.
+        													   //ergo weight = 1 =>100%.  special route usata sempre
+        													   //     weight = 11 =>0%.   special route usata mai
         return false;
     }
 

@@ -19,8 +19,8 @@ public class SpecialRoutesServiceController {
 
     @RequestMapping(value="abtesting/{serviceName}",method = RequestMethod.GET)
     public AbTestingRoute abstestings(@PathVariable("serviceName") String serviceName) {
-
-        return routeService.getRoute( serviceName);
+    	AbTestingRoute out = routeService.getRoute( serviceName);
+        return out;
     }
 
 }
